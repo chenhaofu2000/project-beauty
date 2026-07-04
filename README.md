@@ -1,102 +1,104 @@
-# project_beauty · 个人审美画像生成器
+# project_beauty · Personal Aesthetic Profiler
 
-从用户上传的图片中,提炼出可解释的**个人审美画像**——题材偏好、色调倾向、情绪构成——并生成一份可读的审美报告。
+Extracts an interpretable **aesthetic profile** — subject preferences, tonal tendencies, and mood composition — from a set of user-uploaded images, and generates a readable taste report.
 
-> 定位:面向"审美有个性但非专业设计师"的普通用户,把难以言说的"审美直觉"分解为可量化、可解释的维度。
+> Built for users with a distinctive but non-professional eye for aesthetics: decomposing hard-to-articulate "taste" into quantifiable, explainable dimensions.
 
-## 核心设计理念
+## Design Philosophy
 
-审美难以直接量化,但可以**分层拆解**。本项目刻意区分三个层次,分别用不同方法处理:
+Aesthetics resist direct quantification, but they can be **decomposed by layer**. This project deliberately separates three levels, each handled by a different method:
 
-| 层次 | 内容 | 方法 | 是否需要标注 |
-|------|------|------|--------------|
-| 第一层 | 客观视觉维度(明暗/饱和/冷暖/对比/色彩) | 像素统计 | 否 |
-| 第二层 | 情绪/氛围(忧郁/温郁/明媚…) | 规则映射 | 否 |
-| 第三层 | 主观品味(高级感/小众…) | 偏好学习 | 是(规划中) |
+| Layer | Content | Method | Needs labels? |
+|-------|---------|--------|---------------|
+| 1 | Objective visual dimensions (lightness / saturation / warmth / contrast / colorfulness) | Pixel statistics | No |
+| 2 | Mood & atmosphere (melancholic, warm-dim, serene…) | Rule-based mapping | No |
+| 3 | Subjective taste (refinement, niche-ness…) | Preference learning | Yes (planned) |
 
-这种分层让产品的主体(题材 + 调性 + 情绪)**无需任何标注即可运行**,把昂贵的人工标注只留给最主观的第三层。
+This layering lets the core product (subject + tone + mood) **run without any labeled data**, reserving costly human annotation only for the most subjective third layer.
 
-## 双腿架构:各司其职
+## Two-Leg Architecture
 
-系统用两条独立的"腿"描述每张图,各自做自己最擅长的事:
+The system describes each image with two independent "legs," each doing what it does best:
 
-- **CLIP 语义腿** —— 判断**题材**(人像/风景/卡通/插画/建筑/静物/食物/动物)。语义识别是 CLIP 的本行,准确率高。
-- **像素统计腿** —— 计算**色调**(明暗/饱和/冷暖/对比/色彩)。这些物理属性用像素统计比用大模型更准、更快、更可解释,且**跨题材通用**(暗调的风景和暗调的人像,在"明暗"维度上是同一个值)。
+- **CLIP semantic leg** — classifies **subject** (portrait / landscape / cartoon / illustration / architecture / still-life / food / animal). Semantic recognition is CLIP's native strength, yielding high accuracy.
+- **Pixel-statistics leg** — computes **tone** (lightness / saturation / warmth / contrast / colorfulness). These physical properties are more accurate, faster, and more explainable via pixel statistics than via a large model — and they are **subject-invariant** (a dark landscape and a dark portrait share the same lightness value).
 
-关键洞察:纯语义相似度(CLIP)被**题材**主导,无法捕捉"跨题材的调性一致性";而像素调性维度天然跨题材,正好补上这一环。
+Key insight: raw CLIP similarity is dominated by **subject matter** and fails to capture cross-subject tonal consistency; subject-invariant pixel dimensions fill exactly that gap.
 
-## 工程决策记录(方法论)
+## Engineering Decision Log
 
-项目通过"提出假设 → 用数据验证 → 保留有效、砍掉无效"的循环推进,而非拍脑袋:
+The project advanced through a loop of *hypothesize → validate with data → keep what works, cut what doesn't*, rather than guesswork:
 
-- ❌ **LAION 美学评分模型**:用 Spearman 相关性验证后发现其"大众审美"与目标用户(偏小众/高级审美)方向不一致,甚至将游戏截图评为高分——**砍掉**。
-- ❌ **CLIP 情绪投影**:实测情绪读数区分度过低(各情绪得分挤在一起),**降级为不使用**。
-- ✅ **像素客观维度**:数据支持(权重搜索自动收敛到明暗维度),**保留为核心**。
-- ✅ **CLIP 题材分类**:在标注集上达到约 90% 准确率,**保留**。
+- ❌ **LAION aesthetic predictor** — validated via Spearman correlation; its "mainstream taste" diverged from (even inverted against) the target user's more niche/refined sensibility, scoring a game screenshot as high-quality. **Cut.**
+- ❌ **CLIP mood projection** — measured mood readings clustered too tightly to separate. **Dropped.**
+- ✅ **Pixel objective dimensions** — supported by data (weight search converged onto the lightness dimension). **Kept as core.**
+- ✅ **CLIP subject classification** — ~90% accuracy on a hand-labeled set. **Kept.**
 
-## 项目结构
+## Project Structure
 
 ```
 project_beauty/
 ├── src/aesthetic/
-│   ├── engine.py       # CLIP 引擎(单例,集中管理模型加载)
-│   ├── dimensions.py   # 第一层:客观视觉维度提取
-│   ├── mood.py         # 第二层:情绪映射规则
-│   ├── subject.py      # CLIP 题材分类腿
-│   └── report.py       # 分析编排 + 报告生成
+│   ├── engine.py       # CLIP engine (singleton, centralized model loading)
+│   ├── dimensions.py   # Layer 1: objective visual dimensions
+│   ├── mood.py         # Layer 2: mood mapping rules
+│   ├── subject.py      # CLIP subject-classification leg
+│   └── report.py       # Analysis orchestration + report generation
 ├── scripts/
-│   └── analyze.py      # 命令行入口
+│   └── analyze.py      # CLI entry point
 ├── tests/
 │   └── test_dimensions.py
 └── README.md
 ```
 
-## 快速开始
+## Quick Start
 
 ```bash
-# 安装依赖(需要 Python 3.12)
+# Install dependencies (requires Python 3.12)
 uv venv --python 3.12
 uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 uv pip install open_clip_torch pillow numpy loguru
 
-# 分析一个图片文件夹
+# Analyze a folder of images
 uv run python scripts/analyze.py path/to/images
 ```
 
-## 输出示例
+## Sample Output
 
 ```
-=== 题材分布 ===
-  人像    50%
-  插画    20%
-  动物    20%
-  静物    10%
+=== Subject Distribution ===
+  Portrait      50%
+  Illustration  20%
+  Animal        20%
+  Still-life    10%
 
-=== 情绪分布 ===
-  温暖    60%
-  平和    30%
-  清冷    10%
+=== Mood Distribution ===
+  Warm      40%
+  Serene    30%
+  Warm-dim  20%
+  Cool      10%
 
-── 报告雏形 ──
-  你偏爱【人像】题材(50%),
-  审美由 60% 温暖 + 30% 平和 + 10% 清冷 构成,
-  整体调性:偏暗 / 低饱和高级感 / 暖调。
+── Report Draft ──
+  You gravitate toward Portrait subjects (50%),
+  with a taste composed of 40% Warm + 30% Serene + 20% Warm-dim,
+  overall tone: dark-leaning / low-saturation refinement / warm.
 ```
 
-## 技术栈
+## Tech Stack
 
-- **CLIP**(open_clip,ViT-B-32 / laion2b)—— 图像语义编码与题材分类
-- **NumPy / Pillow** —— 像素级维度计算
-- **loguru** —— 结构化日志
-- **PyTorch**(CUDA)—— 模型推理
+- **CLIP** (open_clip, ViT-B-32 / laion2b) — image semantic encoding & subject classification
+- **NumPy / Pillow** — pixel-level dimension computation
+- **loguru** — structured logging
+- **PyTorch** (CUDA) — model inference
 
-## 路线图
+## Roadmap
 
-- [x] 客观维度提取(第一层)
-- [x] 情绪映射(第二层)
-- [x] CLIP 题材分类
-- [x] 文字报告生成
-- [ ] 主观品味学习(第三层,基于二选一偏好标注 + 权重搜索)
-- [ ] 可分享的可视化报告卡片
-- [ ] LLM 润色的自然语言报告
-- [ ] Web 界面 / 冷启动二选一交互
+- [x] Objective dimension extraction (Layer 1)
+- [x] Mood mapping (Layer 2)
+- [x] CLIP subject classification
+- [x] Text report generation
+- [ ] Subjective taste learning (Layer 3, via pairwise preference labeling + weight search)
+- [ ] Shareable visual report card
+- [ ] LLM-polished natural-language report
+- [ ] Web interface / cold-start pairwise interaction
+```

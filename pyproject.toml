@@ -1,0 +1,16 @@
+﻿[project]
+name = "project-beauty"
+version = "0.1.0"
+description = "个人审美画像生成器 - 从图片提炼审美倾向"
+requires-python = ">=3.12"
+dependencies = [
+    "open-clip-torch>=3.0",
+    "torch>=2.0",
+    "torchvision",
+    "pillow",
+    "numpy",
+    "loguru",
+]
+
+[tool.uv]
+package = false
